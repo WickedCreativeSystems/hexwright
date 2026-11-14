@@ -1,0 +1,9 @@
+{
+	"id": "hexwright",
+	"name": "Hexwright",
+	"version": "0.1.0",
+	"minAppVersion": "1.13.0",
+	"description": "Hex-crawl maps drawn from a seed in a note: terrain, rivers, roads and towns on a numbered hex grid.",
+	"author": "Bananafest Destiny",
+	"isDesktopOnly": false
+}

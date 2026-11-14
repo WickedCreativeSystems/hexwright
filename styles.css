@@ -1,0 +1,20 @@
+.hexwright-wrap {
+	overflow-x: auto;
+}
+
+.hexwright-map {
+	display: block;
+	max-width: 100%;
+	height: auto;
+}
+
+.hexwright-caption {
+	color: var(--text-muted);
+	font-size: var(--font-smaller);
+	margin-top: 4px;
+}
+
+.hexwright-problem {
+	color: var(--text-error);
+	font-size: var(--font-smaller);
+}
