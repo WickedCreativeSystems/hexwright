@@ -166,3 +166,7 @@ export function setIcon(el: HTMLElement, name: string) {
 	const hook = (globalThis as unknown as { __iconHook?: (el: HTMLElement, name: string) => void }).__iconHook;
 	if (hook) hook(el, name);
 }
+
+export function normalizePath(p: string): string {
+	return p.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/^\/|\/$/g, '');
+}

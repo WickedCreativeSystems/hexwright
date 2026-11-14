@@ -82,3 +82,56 @@ describe('render', () => {
 		expect(svg).toContain('>0607<');
 	});
 });
+
+import { hexNote, keyCrawl } from '../src/keys';
+import { notePath } from '../src/main';
+
+describe('keys', () => {
+	it('gives every hex a key, towns their names, and rumours that point at real places', () => {
+		for (const seed of seeds) {
+			const c = generate({ ...DEFAULTS, seed });
+			const keys = keyCrawl(c);
+			expect(keys).toHaveLength(c.hexes.length);
+			for (const t of c.towns) expect(keys[t]!.kind).toBe('town');
+			const named = keys.filter((k) => k.kind !== 'empty').map((k) => k.name);
+			expect(new Set(named).size).toBe(named.length);
+			const rumours = keys.filter((k) => k.rumour);
+			expect(rumours.length).toBeGreaterThan(c.hexes.length * 0.1);
+			for (const k of rumours) {
+				expect(keys[k.rumour!.to]!.kind).not.toBe('empty');
+				expect(k.rumour!.text).toContain(c.hexes[k.rumour!.to]!.id);
+			}
+			expect(keys.filter((k) => k.kind !== 'empty' && k.kind !== 'town').length).toBeGreaterThan(c.hexes.length * 0.15);
+		}
+	});
+	it('is the same for the same seed', () => {
+		expect(keyCrawl(generate({ ...DEFAULTS, seed: 'q' }))).toEqual(keyCrawl(generate({ ...DEFAULTS, seed: 'q' })));
+	});
+	it('writes a hex note with a mapsmith block for towns and ruins', () => {
+		const c = generate({ ...DEFAULTS, seed: 'saltmarch' });
+		const keys = keyCrawl(c);
+		const town = c.towns[0]!;
+		const note = hexNote(c, keys, town);
+		expect(note).toContain(`# ${c.hexes[town]!.id}: ${keys[town]!.name}`);
+		expect(note).toContain('```mapsmith');
+		expect(note).toContain(`seed: saltmarch-${c.hexes[town]!.id}`);
+		const ruin = keys.findIndex((k) => k.kind === 'ruin');
+		if (ruin >= 0) expect(hexNote(c, keys, ruin)).toContain('map: dungeon');
+		const empty = keys.findIndex((k) => k.kind === 'empty');
+		expect(hexNote(c, keys, empty)).not.toContain('```mapsmith');
+	});
+	it('puts the note beside the map note', () => {
+		const c = generate({ ...DEFAULTS, seed: 'saltmarch' });
+		expect(notePath('Campaign/Maps/Crawl.md', c, 0)).toBe('Campaign/Maps/saltmarch 0101.md');
+		expect(notePath('Crawl.md', c, 0)).toBe('saltmarch 0101.md');
+	});
+});
+
+describe('key names', () => {
+	it('never falls back to a bare label like "X Landmark"', () => {
+		for (const seed of seeds) {
+			const keys = keyCrawl(generate({ ...DEFAULTS, seed, cols: 20, rows: 16 }));
+			for (const k of keys) expect(k.name).not.toMatch(/^\S+ (Landmark|Lair|Resource|tower|keep|mine|chapel)$/);
+		}
+	});
+});

@@ -1,6 +1,7 @@
 // The crawl as SVG: a small tree of nodes that can become a string (for export and tests) or real DOM.
 
 import type { Crawl, Hex, Terrain } from './hex';
+import type { Key } from './keys';
 import { makeRng, range, type Rng } from './rng';
 
 export interface Node {
@@ -124,6 +125,28 @@ function through(c: Crawl, run: number[], label: string, wobble: number): string
 export interface RenderOpts {
 	palette?: Palette;
 	numbers?: boolean;
+	keys?: Key[];
+	/** the hex picked, outlined */
+	picked?: number;
+}
+
+// The mark for what is in a hex (towns are drawn apart, bigger).
+function glyph(k: Key, x: number, y: number, p: Palette): Node | null {
+	const ink = p.ink, s = { stroke: ink, 'stroke-width': 1.2, 'stroke-linejoin': 'round' } as const;
+	switch (k.kind) {
+		case 'village':
+			return el('path', { d: `M${f(x - 4.5)},${f(y + 5)} v-5 l4.5,-4.5 l4.5,4.5 v5 z`, fill: p.town, ...s });
+		case 'ruin':
+			return el('path', { d: `M${f(x - 5)},${f(y + 6)} v-10 h2 v2 h2 v-2 h2 v4 l2,-2 v8 z`, fill: '#a99c86', ...s });
+		case 'lair':
+			return el('path', { d: `M${f(x - 7)},${f(y + 5)} q7,-14 14,0 z M${f(x - 2.5)},${f(y + 5)} q2.5,-6 5,0`, fill: '#6d5a48', ...s });
+		case 'landmark':
+			return el('path', { d: `M${f(x - 2.5)},${f(y + 6)} l1,-12 h3 l1,12 z`, fill: '#b7ad98', ...s });
+		case 'resource':
+			return el('path', { d: `M${f(x)},${f(y - 6)} l5,6 l-5,6 l-5,-6 z`, fill: '#d9b343', ...s });
+		default:
+			return null;
+	}
 }
 
 export function render(c: Crawl, o: RenderOpts = {}): Node {
@@ -133,7 +156,10 @@ export function render(c: Crawl, o: RenderOpts = {}): Node {
 	for (const hx of c.hexes) {
 		const [x, y] = centre(hx);
 		tiles.push(el('polygon', { points: corners(x, y), fill: p.fill[hx.terrain], 'data-hex': hx.id, class: 'hexwright-hex' }));
-		if (!hx.town) art.push(...marks(hx, makeRng(c.opts.seed + ':' + hx.id), p));
+		const k = o.keys?.[hx.i];
+		const g = k ? glyph(k, x, y + 2, p) : null;
+		if (g) art.push(g);
+		else if (!hx.town) art.push(...marks(hx, makeRng(c.opts.seed + ':' + hx.id), p));
 		if (o.numbers !== false) labels.push(el('text', { x: f(x), y: f(y - HEX * 0.6), 'font-size': 7.5, 'text-anchor': 'middle', fill: p.label, 'font-family': 'sans-serif' }, [hx.id]));
 	}
 	const rivers = c.rivers.map((run) => el('path', { d: through(c, run, 'river', 4), fill: 'none', stroke: p.river, 'stroke-width': 2.6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
@@ -147,21 +173,23 @@ export function render(c: Crawl, o: RenderOpts = {}): Node {
 	});
 	const s = c.hexes[c.start] as Hex;
 	const [sx, sy] = centre(s);
-	const party = el('g', { class: 'hexwright-party' }, [
+	const party = el('g', { class: 'hexwright-party', 'pointer-events': 'none' }, [
 		el('polygon', { points: corners(sx, sy, HEX - 2.5), fill: 'none', stroke: p.party, 'stroke-width': 2.5 }),
 		el('circle', { cx: f(sx), cy: f(sy + HEX * 0.48), r: 3.5, fill: p.party }),
 	]);
-	const grid = el('g', { fill: 'none', stroke: p.grid, 'stroke-width': 0.8, opacity: 0.7 }, c.hexes.map((hx) => el('polygon', { points: corners(...centre(hx)) })));
+	const pick = o.picked !== undefined && c.hexes[o.picked] ? [el('polygon', { points: corners(...centre(c.hexes[o.picked] as Hex), HEX - 1.5), fill: 'none', stroke: p.ink, 'stroke-width': 2, 'stroke-dasharray': '4 2', class: 'hexwright-picked', 'pointer-events': 'none' })] : [];
+	const grid = el('g', { 'pointer-events': 'none', fill: 'none', stroke: p.grid, 'stroke-width': 0.8, opacity: 0.7 }, c.hexes.map((hx) => el('polygon', { points: corners(...centre(hx)) })));
 	return el('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: `0 0 ${f(w)} ${f(h)}`, width: f(w), height: f(h), class: 'hexwright-map' }, [
 		el('rect', { x: 0, y: 0, width: f(w), height: f(h), fill: p.paper }),
 		el('g', {}, tiles),
-		el('g', {}, art),
-		el('g', {}, rivers),
-		el('g', {}, roads),
+		el('g', { 'pointer-events': 'none' }, art),
+		el('g', { 'pointer-events': 'none' }, rivers),
+		el('g', { 'pointer-events': 'none' }, roads),
 		grid,
-		el('g', {}, towns),
+		el('g', { 'pointer-events': 'none' }, towns),
 		party,
-		el('g', {}, labels),
+		...pick,
+		el('g', { 'pointer-events': 'none' }, labels),
 	]);
 }
 

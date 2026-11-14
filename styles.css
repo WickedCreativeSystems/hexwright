@@ -18,3 +18,32 @@
 	color: var(--text-error);
 	font-size: var(--font-smaller);
 }
+
+.hexwright-hex {
+	cursor: pointer;
+}
+
+.hexwright-card {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	padding: 8px 12px;
+	margin-top: 8px;
+}
+
+.hexwright-card-title {
+	font-weight: var(--font-semibold);
+}
+
+.hexwright-card-label {
+	color: var(--text-muted);
+	font-size: var(--font-smaller);
+}
+
+.hexwright-rumour {
+	font-style: italic;
+	margin-top: 4px;
+}
+
+.hexwright-buttons {
+	margin-top: 8px;
+}
