@@ -6,6 +6,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
+		"demo": "node esbuild.demo.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
 		"test": "vitest run",
 		"lint": "eslint src"

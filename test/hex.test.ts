@@ -206,3 +206,17 @@ describe('travel', () => {
 		expect(applyMove(note, 1, 4, play, 'x')).toBeNull();
 	});
 });
+
+describe('key lines', () => {
+	it('keeps a landmark or resource with its own line', () => {
+		for (const seed of seeds) {
+			const keys = keyCrawl(generate({ ...DEFAULTS, seed, cols: 20, rows: 16 }));
+			for (const k of keys) {
+				if (k.name.startsWith('Clear Spring')) expect(k.line).toContain('spring');
+				if (k.name.startsWith('Herb Meadow')) expect(k.line).toContain('herbs');
+				if (k.name.startsWith('The Wreck')) expect(k.line).toContain('ship');
+				if (k.name.startsWith('Spider Wood')) expect(k.line).toContain('Webs');
+			}
+		}
+	});
+});

@@ -59,15 +59,15 @@ const RUINS: Thing[] = [
 ];
 
 const LAIRS: Partial<Record<Terrain, Thing>> & { any: Thing } = {
-	any: { name: ['Wolf Den', 'The Bone Hollow', 'Bandit Camp', 'Ogre’s Larder'], label: 'Lair', lines: ['Picked bones by the entrance, and fresh ones.', 'Smoke by day, and a watcher on the rocks.', 'Whatever lives here takes sheep, and lately more than sheep.'] },
-	forest: { name: ['Spider Wood', 'The Owlbear Hollow', 'The Hanging Grove', 'Outlaw Camp'], label: 'Lair', lines: ['Webs between the trees as high as a man.', 'Bark torn off the trunks at shoulder height.', 'Outlaws who rob the road and pay the nearest village not to see.'] },
-	hills: { name: ['Goblin Warren', 'The Troll Bridge', 'Gnoll Camp', 'The Worg Den'], label: 'Lair', lines: ['Holes all over the hillside, and more each spring.', 'Something under the old bridge asks a toll.', 'Drums at night, and fires on the ridge.'] },
-	mountains: { name: ['The Wyvern Crag', 'Giant’s Seat', 'Harpy Rocks', 'The Dragon’s Shelf'], label: 'Lair', lines: ['A shadow crosses the valley at noon and the goats scatter.', 'Boulders as big as cottages, stacked like a wall.', 'Screeching from the rocks, and feathers on the path.'] },
-	swamp: { name: ['The Hag’s Hut', 'Lizardfolk Mound', 'The Will-o’-Wisp Fen', 'The Sunken Village'], label: 'Lair', lines: ['A hut on legs that is never in the same place twice.', 'Reed huts on a mound, and spears in the reeds.', 'Lights in the fen that walk away when you follow them.'] },
+	any: { name: ['Wolf Den', 'The Bone Hollow', 'Bandit Camp', 'Ogre’s Larder'], label: 'Lair', lines: ['Tracks as big as a hand, and howling close to the farms.', 'Picked bones by the entrance, and fresh ones.', 'Smoke by day, and a watcher on the rocks.', 'Whatever lives here takes sheep, and lately more than sheep.'] },
+	forest: { name: ['Spider Wood', 'The Owlbear Hollow', 'The Hanging Grove', 'Outlaw Camp'], label: 'Lair', lines: ['Webs between the trees as high as a man.', 'Bark torn off the trunks at shoulder height.', 'Old ropes still hang from the branches, and the birds keep away.', 'Outlaws who rob the road and pay the nearest village not to see.'] },
+	hills: { name: ['Goblin Warren', 'The Troll Bridge', 'Gnoll Camp', 'The Worg Den'], label: 'Lair', lines: ['Holes all over the hillside, and more each spring.', 'Something under the old bridge asks a toll.', 'Drums at night, and fires on the ridge.', 'Big grey wolves with riders, seen at dusk.'] },
+	mountains: { name: ['The Wyvern Crag', 'Giant’s Seat', 'Harpy Rocks', 'The Dragon’s Shelf'], label: 'Lair', lines: ['A shadow crosses the valley at noon and the goats scatter.', 'Boulders as big as cottages, stacked like a wall.', 'Screeching from the rocks, and feathers on the path.', 'A ledge black with old fire, and something gold catching the sun.'] },
+	swamp: { name: ['The Hag’s Hut', 'Lizardfolk Mound', 'The Will-o’-Wisp Fen', 'The Sunken Village'], label: 'Lair', lines: ['A hut on legs that is never in the same place twice.', 'Reed huts on a mound, and spears in the reeds.', 'Lights in the fen that walk away when you follow them.', 'Rooftops in the water, and someone still rings the bell.'] },
 };
 
 const LANDMARKS: Partial<Record<Terrain, Thing>> & { any: Thing } = {
-	any: { name: ['The Standing Stones', 'The Hanging Tree', 'The Old Milestone', 'The Giant’s Chair'], label: 'Landmark', lines: ['Nine stones in a ring, and a tenth that lies apart.', 'Everyone gives directions from it, and nobody goes close.', 'Someone has carved a map into it, and the map is wrong.'] },
+	any: { name: ['The Standing Stones', 'The Hanging Tree', 'The Old Milestone', 'The Giant’s Chair'], label: 'Landmark', lines: ['Nine stones in a ring, and a tenth that lies apart.', 'Everyone gives directions from it, and nobody goes close.', 'Someone has carved a map into it, and the map is wrong.', 'A rock shaped like a seat for a giant, warm to the touch at midnight.'] },
 	forest: { name: ['The Great Oak', 'The Green Chapel', 'The Moss Stair'], label: 'Landmark', lines: ['An oak so old the village says it was here first.', 'A clearing where the trees grow in a perfect ring.', 'Steps cut into the hillside, going up into the trees.'] },
 	hills: { name: ['The White Horse', 'The Beacon', 'The Old Fort'], label: 'Landmark', lines: ['A horse cut into the chalk, as long as a village.', 'A beacon on the summit, laid and ready to light.', 'Earth ramparts from a war nobody remembers.'] },
 	mountains: { name: ['The Needle', 'The Pass Shrine', 'The Frozen Falls'], label: 'Landmark', lines: ['A spire of rock you can see from three days away.', 'A shrine at the top of the pass where travellers leave a coin.', 'A waterfall frozen in summer.'] },
@@ -132,8 +132,12 @@ export function keyCrawl(c: Crawl): Key[] {
 	const keys: Key[] = c.hexes.map((h) => {
 		const hr = fork(r, h.id);
 		const thing = (t: Thing, kind: KeyKind): Key => {
-			const name = unique(hr, t.name, (rr) => `${pick(rr, t.name)} near ${placeName(rr, h)}`);
-			return { kind, name, label: t.label, line: pick(hr, t.lines), ...(t.dungeon ? { dungeon: t.dungeon } : {}) };
+			let base = '';
+			const name = unique(hr, t.name, (rr) => `${(base = pick(rr, t.name))} near ${placeName(rr, h)}`);
+			// where each name has its own line (landmarks, lairs, resources), keep them together
+			const at = t.name.indexOf(base || name);
+			const line = t.lines.length === t.name.length && at >= 0 ? (t.lines[at] as string) : pick(hr, t.lines);
+			return { kind, name, label: t.label, line, ...(t.dungeon ? { dungeon: t.dungeon } : {}) };
 		};
 		if (h.town) {
 			const name = unique(hr, [], (rr) => placeName(rr, h));

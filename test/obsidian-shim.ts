@@ -39,6 +39,8 @@ export function installDomHelpers() {
 		this.appendChild(el);
 		return el;
 	};
+	(Element.prototype as unknown as Record<string, unknown>).appendText = function (this: Element, t: string) { this.appendChild(document.createTextNode(t)); };
+	(globalThis as unknown as Record<string, unknown>).createEl = (tag: string, o?: Opts) => make.call(undefined, tag, o);
 	(globalThis as unknown as Record<string, unknown>).createSpan = (o?: Opts) => make.call(undefined, 'span', o);
 	(globalThis as unknown as Record<string, unknown>).createDiv = (o?: Opts) => make.call(undefined, 'div', o);
 }
@@ -67,6 +69,7 @@ export class App {
 		},
 	};
 	folders = new Set<string>();
+	binaries = new Map<string, ArrayBuffer>();
 	active: string | null = null;
 	private handlers = new Map<string, ((data: never) => void)[]>();
 	vault = {
@@ -78,6 +81,9 @@ export class App {
 			return new TFile(path);
 		},
 		createFolder: async (path: string) => { this.folders.add(path); },
+		createBinary: async (path: string, data: ArrayBuffer) => { this.binaries.set(path, data); return new TFile(path); },
+		modifyBinary: async (f: TFile, data: ArrayBuffer) => { this.binaries.set(f.path, data); },
+		read: async (f: TFile) => this.find(f.path)!.content,
 		process: async (f: TFile, fn: (data: string) => string) => {
 			const n = this.find(f.path)!;
 			n.content = fn(n.content);
@@ -102,6 +108,7 @@ export class App {
 export class Component {
 	load() {}
 	unload() {}
+	registerDomEvent(el: EventTarget, type: string, fn: (e: never) => void) { el.addEventListener(type, fn as EventListener); }
 }
 export class MarkdownRenderChild extends Component {
 	constructor(public containerEl: HTMLElement) { super(); }
@@ -169,4 +176,11 @@ export function setIcon(el: HTMLElement, name: string) {
 
 export function normalizePath(p: string): string {
 	return p.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/^\/|\/$/g, '');
+}
+
+export function base64ToArrayBuffer(b64: string): ArrayBuffer {
+	const bin = atob(b64);
+	const out = new Uint8Array(bin.length);
+	for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+	return out.buffer;
 }
