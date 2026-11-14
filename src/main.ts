@@ -1,8 +1,9 @@
-import { MarkdownRenderChild, Notice, Plugin, TFile, normalizePath, type Editor, type MarkdownPostProcessorContext } from 'obsidian';
+import { MarkdownRenderChild, Notice, Plugin, TFile, base64ToArrayBuffer, normalizePath, type Editor, type MarkdownPostProcessorContext } from 'obsidian';
 import { parseBlock } from './block';
 import { generate, newSeed, type Crawl } from './hex';
 import { hexNote, keyCrawl, type Key } from './keys';
-import { render, toDom } from './render';
+import { svgToPng } from './png';
+import { HEX, render, size, toDom, toString } from './render';
 import { applyMove, canTravel, daysTo, partyHex, seenSet, travel, type Play } from './travel';
 
 /** Where a hex's note goes: beside the note that holds the map. */
@@ -42,6 +43,7 @@ class CrawlMap extends MarkdownRenderChild {
 		const at = partyHex(c, this.play);
 		const seen = this.play.fog && !this.reveal ? seenSet(c, this.play) : undefined;
 		const svg = toDom(render(c, { keys: this.keys, picked: this.picked, at, seen }), wrap);
+		const save = () => this.plugin.savePng(this.ctx.sourcePath, c, render(c, { keys: this.keys, at, seen }));
 		this.registerDomEvent(svg as unknown as HTMLElement, 'click', (e: MouseEvent) => {
 			const id = (e.target as Element).closest('[data-hex]')?.getAttribute('data-hex');
 			const h = id ? c.hexes.find((x) => x.id === id) : undefined;
@@ -59,6 +61,14 @@ class CrawlMap extends MarkdownRenderChild {
 				this.draw();
 			});
 		}
+		const tools = box.createDiv({ cls: 'hexwright-buttons' });
+		const pic = tools.createEl('button', { text: 'Save as picture' });
+		this.registerDomEvent(pic, 'click', () => {
+			pic.disabled = true;
+			save()
+				.catch((e: unknown) => new Notice(`Couldn’t save the picture: ${e instanceof Error ? e.message : String(e)}`))
+				.finally(() => (pic.disabled = false));
+		});
 		for (const p of this.problems) box.createDiv({ cls: 'hexwright-problem', text: p });
 		if (this.picked !== undefined) this.panel(box, this.picked);
 	}
@@ -129,6 +139,24 @@ export default class Hexwright extends Plugin {
 			name: 'Insert a hex crawl',
 			editorCallback: (editor: Editor) => editor.replaceSelection(`\`\`\`hexwright\nseed: ${newSeed()}\nsize: medium\nterrain: mixed\nfog: off   # on hides hexes the party hasn't seen\n\`\`\`\n`),
 		});
+	}
+
+	/**
+	 * Writes the map as it is shown (fog and all) as a PNG beside the note, with hexes 100 pixels from flat side to
+	 * flat side and the grid starting at the top-left corner, so a virtual tabletop's hex grid can be laid on it.
+	 */
+	async savePng(sourcePath: string, c: Crawl, tree: ReturnType<typeof render>) {
+		const scale = 100 / (Math.sqrt(3) * HEX);
+		const [w, h] = size(c).map((v) => Math.round(v * scale)) as [number, number];
+		tree.a.width = w;
+		tree.a.height = h;
+		const bin = base64ToArrayBuffer(await svgToPng(toString(tree), w, h));
+		const dir = sourcePath.includes('/') ? sourcePath.slice(0, sourcePath.lastIndexOf('/') + 1) : '';
+		const path = normalizePath(`${dir}${c.opts.seed.replace(/[\\/:*?"<>|#^[\]]/g, '')} hexes.png`);
+		const old = this.app.vault.getAbstractFileByPath(path);
+		if (old instanceof TFile) await this.app.vault.modifyBinary(old, bin);
+		else await this.app.vault.createBinary(path, bin);
+		new Notice(`Saved ${path}: ${c.cols} by ${c.rows} flat-topped hexes, 100 pixels from flat side to flat side (115 corner to corner), ${w} by ${h} pixels.`);
 	}
 
 	/** Open the hex's note, writing it first if it isn't there. */
