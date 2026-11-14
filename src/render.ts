@@ -23,6 +23,7 @@ export interface Palette {
 	road: string;
 	town: string;
 	party: string;
+	fog: string;
 }
 
 export const LIGHT: Palette = {
@@ -36,6 +37,7 @@ export const LIGHT: Palette = {
 	road: '#8b5a2b',
 	town: '#7a2e22',
 	party: '#b8322a',
+	fog: '#d9d3c3',
 };
 
 const SQ3 = Math.sqrt(3);
@@ -128,6 +130,10 @@ export interface RenderOpts {
 	keys?: Key[];
 	/** the hex picked, outlined */
 	picked?: number;
+	/** the party's hex; default the crawl's start */
+	at?: number;
+	/** when given, hexes not in it are drawn as fog */
+	seen?: Set<number>;
 }
 
 // The mark for what is in a hex (towns are drawn apart, bigger).
@@ -171,13 +177,14 @@ export function render(c: Crawl, o: RenderOpts = {}): Node {
 			el('path', { d: `M${f(x - 7.5)},${f(y - 2.5)} L${f(x)},${f(y - 9)} L${f(x + 7.5)},${f(y - 2.5)} z`, fill: p.town, stroke: p.ink, 'stroke-width': 0.8 }),
 		]);
 	});
-	const s = c.hexes[c.start] as Hex;
+	const s = (c.hexes[o.at ?? c.start] ?? c.hexes[c.start]) as Hex;
 	const [sx, sy] = centre(s);
 	const party = el('g', { class: 'hexwright-party', 'pointer-events': 'none' }, [
 		el('polygon', { points: corners(sx, sy, HEX - 2.5), fill: 'none', stroke: p.party, 'stroke-width': 2.5 }),
 		el('circle', { cx: f(sx), cy: f(sy + HEX * 0.48), r: 3.5, fill: p.party }),
 	]);
 	const pick = o.picked !== undefined && c.hexes[o.picked] ? [el('polygon', { points: corners(...centre(c.hexes[o.picked] as Hex), HEX - 1.5), fill: 'none', stroke: p.ink, 'stroke-width': 2, 'stroke-dasharray': '4 2', class: 'hexwright-picked', 'pointer-events': 'none' })] : [];
+	const fog = o.seen ? c.hexes.filter((hx) => !o.seen!.has(hx.i)).map((hx) => el('polygon', { points: corners(...centre(hx)), fill: p.fog })) : [];
 	const grid = el('g', { 'pointer-events': 'none', fill: 'none', stroke: p.grid, 'stroke-width': 0.8, opacity: 0.7 }, c.hexes.map((hx) => el('polygon', { points: corners(...centre(hx)) })));
 	return el('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: `0 0 ${f(w)} ${f(h)}`, width: f(w), height: f(h), class: 'hexwright-map' }, [
 		el('rect', { x: 0, y: 0, width: f(w), height: f(h), fill: p.paper }),
@@ -185,8 +192,9 @@ export function render(c: Crawl, o: RenderOpts = {}): Node {
 		el('g', { 'pointer-events': 'none' }, art),
 		el('g', { 'pointer-events': 'none' }, rivers),
 		el('g', { 'pointer-events': 'none' }, roads),
-		grid,
 		el('g', { 'pointer-events': 'none' }, towns),
+		el('g', { 'pointer-events': 'none', class: 'hexwright-fog' }, fog),
+		grid,
 		party,
 		...pick,
 		el('g', { 'pointer-events': 'none' }, labels),

@@ -135,3 +135,74 @@ describe('key names', () => {
 		}
 	});
 });
+
+import { applyMove, canTravel, partyHex, seenSet, travel, writePlay, NEW_PLAY } from '../src/travel';
+
+describe('travel', () => {
+	const c = generate({ ...DEFAULTS, seed: 'saltmarch' });
+	const keys = keyCrawl(c);
+	const start = c.hexes[c.start]!;
+	const land = neighbours(c, start.col, start.row).map(([x, y]) => y * c.cols + x).filter((i) => c.hexes[i]!.terrain !== 'water');
+
+	it('reads the play lines from the block', () => {
+		const { play, problems } = parseBlock('seed: saltmarch\nfog: on\nat: 0909\nday: 3\nvisited: 0808 0909');
+		expect(problems).toEqual([]);
+		expect(play).toEqual({ fog: true, at: '0909', day: 3, visited: ['0808', '0909'] });
+		expect(parseBlock('fog: maybe\nday: x').problems).toHaveLength(2);
+	});
+	it('starts at the start, sees around it, and only walks to land next door', () => {
+		expect(partyHex(c, NEW_PLAY)).toBe(c.start);
+		const seen = seenSet(c, NEW_PLAY);
+		expect(seen.has(c.start)).toBe(true);
+		for (const i of land) expect(seen.has(i)).toBe(true);
+		expect(seen.size).toBeLessThan(c.hexes.length / 2);
+		for (const i of land) expect(canTravel(c, NEW_PLAY, i)).toBe(true);
+		expect(canTravel(c, NEW_PLAY, c.start)).toBe(false);
+		const far = c.hexes.find((h) => h.terrain !== 'water' && Math.abs(h.col - start.col) > 2)!;
+		expect(canTravel(c, NEW_PLAY, far.i)).toBe(false);
+	});
+	it('moves the party, counts days, records the visit and writes a line', () => {
+		const m = travel(c, keys, NEW_PLAY, land[0]!)!;
+		expect(m).not.toBeNull();
+		expect(m.play.day).toBe(m.days);
+		expect(m.play.at).toBe(c.hexes[m.ended]!.id);
+		expect(m.play.visited).toEqual([start.id, c.hexes[m.ended]!.id]);
+		expect(m.line).toMatch(/^- Days? 1/);
+		expect(m.line).toContain(`${start.id} to ${c.hexes[m.ended]!.id}`);
+		expect(travel(c, keys, NEW_PLAY, land[0]!)).toEqual(m);
+	});
+	it('gets lost sometimes in the woods, never off a road', () => {
+		let lost = 0, moves = 0;
+		for (const seed of seeds) {
+			const cc = generate({ ...DEFAULTS, seed, lean: 'forest' });
+			const kk = keyCrawl(cc);
+			let play = { ...NEW_PLAY };
+			for (let n = 0; n < 30; n++) {
+				const here = cc.hexes[partyHex(cc, play)]!;
+				const opts = neighbours(cc, here.col, here.row).map(([x, y]) => y * cc.cols + x).filter((i) => canTravel(cc, play, i));
+				const to = opts[n % opts.length]!;
+				const m = travel(cc, kk, play, to)!;
+				moves++;
+				if (m.lost) {
+					lost++;
+					expect(here.road && cc.hexes[to]!.road).toBeFalsy();
+				}
+				expect(cc.hexes[m.ended]!.terrain).not.toBe('water');
+				play = m.play;
+			}
+		}
+		expect(lost).toBeGreaterThan(0);
+		expect(lost).toBeLessThan(moves / 2);
+	});
+	it('writes the state back into the block and the day under it', () => {
+		const src = 'seed: saltmarch\nfog: on\nat: 0101\nday: 9';
+		const play = { fog: true, at: '0909', day: 4, visited: ['0808', '0909'] };
+		expect(writePlay(src, play)).toBe('seed: saltmarch\nfog: on\nat: 0909\nday: 4\nvisited: 0808 0909');
+		const note = '# Trip\n\n```hexwright\nseed: saltmarch\n```\n\nMore text.';
+		const one = applyMove(note, 2, 4, play, '- Day 1: a')!;
+		expect(one).toBe('# Trip\n\n```hexwright\nseed: saltmarch\nat: 0909\nday: 4\nvisited: 0808 0909\n```\n\n- Day 1: a\n\nMore text.');
+		const two = applyMove(one, 2, 7, play, '- Day 2: b')!;
+		expect(two).toContain('- Day 1: a\n- Day 2: b\n\nMore text.');
+		expect(applyMove(note, 1, 4, play, 'x')).toBeNull();
+	});
+});

@@ -2,14 +2,17 @@
 // be tested without Obsidian.
 
 import { DEFAULTS, LEANS, SIZES, type CrawlOptions, type Lean, type SizeName } from './hex';
+import { NEW_PLAY, type Play } from './travel';
 
 export interface Parsed {
 	opts: CrawlOptions;
+	play: Play;
 	problems: string[];
 }
 
 export function parseBlock(src: string): Parsed {
 	const opts: CrawlOptions = { ...DEFAULTS };
+	const play: Play = { ...NEW_PLAY, visited: [] };
 	const problems: string[] = [];
 	for (const raw of src.split('\n')) {
 		const line = raw.replace(/#.*$/, '').trim();
@@ -41,9 +44,24 @@ export function parseBlock(src: string): Parsed {
 			case 'start':
 				opts.start = val;
 				break;
+			case 'fog':
+				if (/^(on|yes|true)$/i.test(val)) play.fog = true;
+				else if (/^(off|no|false)$/i.test(val)) play.fog = false;
+				else problems.push(`fog should be on or off, not "${val}"`);
+				break;
+			case 'at':
+				play.at = val;
+				break;
+			case 'day':
+				if (/^\d+$/.test(val)) play.day = Number(val);
+				else problems.push(`day should be a number, not "${val}"`);
+				break;
+			case 'visited':
+				play.visited = val.split(/[\s,]+/).filter(Boolean);
+				break;
 			default:
 				problems.push(`Hexwright doesn't know "${key}"`);
 		}
 	}
-	return { opts, problems };
+	return { opts, play, problems };
 }

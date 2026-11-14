@@ -3,6 +3,7 @@ import { parseBlock } from './block';
 import { generate, newSeed, type Crawl } from './hex';
 import { hexNote, keyCrawl, type Key } from './keys';
 import { render, toDom } from './render';
+import { applyMove, canTravel, daysTo, partyHex, seenSet, travel, type Play } from './travel';
 
 /** Where a hex's note goes: beside the note that holds the map. */
 export function notePath(sourcePath: string, c: Crawl, i: number): string {
@@ -15,11 +16,15 @@ class CrawlMap extends MarkdownRenderChild {
 	private keys: Key[];
 	private picked: number | undefined;
 	private problems: string[];
+	private play: Play;
+	/** fog lifted for this view only (the referee peeking); not saved */
+	private reveal = false;
 
 	constructor(private plugin: Hexwright, el: HTMLElement, src: string, private ctx: MarkdownPostProcessorContext) {
 		super(el);
-		const { opts, problems } = parseBlock(src);
+		const { opts, play, problems } = parseBlock(src);
 		this.problems = problems;
+		this.play = play;
 		this.crawl = generate(opts);
 		this.keys = keyCrawl(this.crawl);
 	}
@@ -34,7 +39,9 @@ class CrawlMap extends MarkdownRenderChild {
 		box.empty();
 		box.addClass('hexwright');
 		const wrap = box.createDiv({ cls: 'hexwright-wrap' });
-		const svg = toDom(render(c, { keys: this.keys, picked: this.picked }), wrap);
+		const at = partyHex(c, this.play);
+		const seen = this.play.fog && !this.reveal ? seenSet(c, this.play) : undefined;
+		const svg = toDom(render(c, { keys: this.keys, picked: this.picked, at, seen }), wrap);
 		this.registerDomEvent(svg as unknown as HTMLElement, 'click', (e: MouseEvent) => {
 			const id = (e.target as Element).closest('[data-hex]')?.getAttribute('data-hex');
 			const h = id ? c.hexes.find((x) => x.id === id) : undefined;
@@ -42,8 +49,16 @@ class CrawlMap extends MarkdownRenderChild {
 			this.picked = this.picked === h.i ? undefined : h.i;
 			this.draw();
 		});
-		const start = c.hexes[c.start];
-		box.createDiv({ cls: 'hexwright-caption', text: `${c.cols} × ${c.rows} hexes, seed ${c.opts.seed}. The party is in ${start?.id ?? '?'}. Click a hex to see what's there.` });
+		const day = this.play.day ? `Day ${this.play.day}. ` : '';
+		const cap = box.createDiv({ cls: 'hexwright-caption', text: `${c.cols} × ${c.rows} hexes, seed ${c.opts.seed}. ${day}The party is in ${c.hexes[at]?.id ?? '?'}. Click a hex to see what's there, or a hex next to the party to travel. ` });
+		if (this.play.fog) {
+			const peek = cap.createEl('a', { text: this.reveal ? 'Hide what the party hasn’t seen' : 'Show the whole map', href: '#' });
+			this.registerDomEvent(peek, 'click', (e) => {
+				e.preventDefault();
+				this.reveal = !this.reveal;
+				this.draw();
+			});
+		}
 		for (const p of this.problems) box.createDiv({ cls: 'hexwright-problem', text: p });
 		if (this.picked !== undefined) this.panel(box, this.picked);
 	}
@@ -52,6 +67,12 @@ class CrawlMap extends MarkdownRenderChild {
 		const c = this.crawl, h = c.hexes[i], k = this.keys[i];
 		if (!h || !k) return;
 		const card = box.createDiv({ cls: 'hexwright-card' });
+		const hidden = this.play.fog && !this.reveal && !seenSet(c, this.play).has(i);
+		if (hidden) {
+			card.createDiv({ cls: 'hexwright-card-title', text: h.id });
+			card.createDiv({ text: 'The party hasn’t seen this hex yet.' });
+			return;
+		}
 		card.createDiv({ cls: 'hexwright-card-title', text: `${h.id}: ${k.name}` });
 		card.createDiv({ cls: 'hexwright-card-label', text: `${k.label}, ${h.terrain === 'water' ? 'open water' : h.terrain}${h.river ? ', river' : ''}${h.road ? ', road' : ''}` });
 		card.createDiv({ text: k.line });
@@ -66,8 +87,35 @@ class CrawlMap extends MarkdownRenderChild {
 			});
 		}
 		const row = card.createDiv({ cls: 'hexwright-buttons' });
+		if (canTravel(c, this.play, i)) {
+			const from = c.hexes[partyHex(c, this.play)];
+			const d = from ? daysTo(from, h) : 1;
+			const go = row.createEl('button', { cls: 'mod-cta', text: `Travel here (${d === 1 ? '1 day' : `${d} days`})` });
+			this.registerDomEvent(go, 'click', () => void this.travel(i));
+		}
 		const open = row.createEl('button', { text: 'Open its note' });
 		this.registerDomEvent(open, 'click', () => void this.plugin.openHexNote(this.ctx.sourcePath, c, this.keys, i));
+	}
+
+	/** Move the party into hex `to`: write the new state into the block and the day into the note. */
+	private async travel(to: number) {
+		const move = travel(this.crawl, this.keys, this.play, to);
+		const info = this.ctx.getSectionInfo(this.containerEl);
+		const file = this.plugin.app.vault.getAbstractFileByPath(this.ctx.sourcePath);
+		if (!move || !info || !(file instanceof TFile)) {
+			new Notice('Hexwright couldn’t find this map in its note to save the move.');
+			return;
+		}
+		let ok = true;
+		await this.plugin.app.vault.process(file, (data) => {
+			const next = applyMove(data, info.lineStart, info.lineEnd, move.play, move.line);
+			if (next === null) {
+				ok = false;
+				return data;
+			}
+			return next;
+		});
+		if (!ok) new Notice('The note changed before the move could be saved. Try again.');
 	}
 }
 
@@ -79,7 +127,7 @@ export default class Hexwright extends Plugin {
 		this.addCommand({
 			id: 'insert-crawl',
 			name: 'Insert a hex crawl',
-			editorCallback: (editor: Editor) => editor.replaceSelection(`\`\`\`hexwright\nseed: ${newSeed()}\nsize: medium\nterrain: mixed\n\`\`\`\n`),
+			editorCallback: (editor: Editor) => editor.replaceSelection(`\`\`\`hexwright\nseed: ${newSeed()}\nsize: medium\nterrain: mixed\nfog: off   # on hides hexes the party hasn't seen\n\`\`\`\n`),
 		});
 	}
 
