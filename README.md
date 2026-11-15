@@ -4,6 +4,8 @@ Hex-crawl maps for tabletop games, drawn from a seed right in your Obsidian note
 
 ![A Hexwright region with rivers, roads and towns, the party's town picked and its card below](docs/demo.png)
 
+**Try it in your browser first:** [bulkhead.bananafest-destiny.com/hex-crawl-generator](https://bulkhead.bananafest-destiny.com/hex-crawl-generator/) runs the real plugin code, fog and travel included.
+
 Put a `hexwright` block in a note and you get a region of plains, forest, hills, mountains, swamp and sea, with rivers running down to the coast, roads between the towns, and every hex numbered the old way (0101 is the top-left). The same seed always draws the same region, so a map in your campaign notes never changes under you.
 
 Every hex is keyed. Click one to see what's there: a town or a village with a name, a ruined tower or barrow, a lair, a landmark, a resource worth money, or just the country itself with a line about it. Many hexes carry a rumour that points at another hex by number and days of travel, so the map hands your players their next lead. **Open its note** writes a note for that hex beside your map note, ready for your own writing.
