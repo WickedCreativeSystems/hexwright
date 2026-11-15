@@ -1,7 +1,7 @@
 {
 	"id": "hexwright",
 	"name": "Hexwright",
-	"version": "0.1.2",
+	"version": "0.1.3",
 	"minAppVersion": "1.13.0",
 	"description": "Hex-crawl maps for TTRPGs drawn from a seed in your notes: terrain, rivers, roads and towns on a numbered hex grid, something in every hex, and a party that travels day by day under fog of war.",
 	"author": "Bananafest Destiny",

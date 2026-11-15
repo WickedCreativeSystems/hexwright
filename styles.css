@@ -1,5 +1,7 @@
 .hexwright-wrap {
 	overflow-x: auto;
+	/* the map's min-width scrolls inside this box and never widens the page around it */
+	contain: inline-size;
 }
 
 .hexwright-map {
