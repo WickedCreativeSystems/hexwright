@@ -65,6 +65,9 @@ The rolls come from the seed and the day, so the same move from the same place o
 
 **Save as picture** writes the map as it's shown (with the fog, if it's on) as a PNG next to your note. Hexes are flat-topped, 100 pixels from flat side to flat side, and the grid starts at the top-left corner of the picture, so a virtual tabletop's hex grid can be laid over it.
 
+- **Foundry VTT:** pick one of the **Hexagonal Columns** grid types (Foundry's flat-topped ones) and line it up with the Grid Alignment Tool, the angled ruler next to Grid Type.
+- **Owlbear Rodeo:** pick **Hex Horizontal** (Owlbear's flat-topped grid, point to the right) and set the columns to the map's width in hexes, which the save notice tells you.
+
 ## Privacy
 
 Hexwright works offline. It reads and writes only the note the map is in and the hex notes and pictures you ask it for. It sends nothing anywhere.
