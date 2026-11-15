@@ -184,3 +184,10 @@ export function base64ToArrayBuffer(b64: string): ArrayBuffer {
 	for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
 	return out.buffer;
 }
+
+/** Obsidian's Platform: on the web pages a phone or tablet (coarse pointer) counts as mobile. */
+export const Platform = {
+	get isMobile() {
+		return typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+	},
+};
