@@ -1,10 +1,13 @@
-import { MarkdownRenderChild, Notice, Plugin, TFile, base64ToArrayBuffer, normalizePath, type Editor, type MarkdownPostProcessorContext } from 'obsidian';
+import { MarkdownRenderChild, Notice, Platform, Plugin, TFile, base64ToArrayBuffer, normalizePath, type Editor, type MarkdownPostProcessorContext } from 'obsidian';
 import { parseBlock } from './block';
 import { generate, newSeed, type Crawl } from './hex';
 import { hexNote, keyCrawl, type Key } from './keys';
 import { svgToPng } from './png';
-import { HEX, render, size, toDom, toString } from './render';
+import { HEX, centre, render, size, toDom, toString } from './render';
 import { applyMove, canTravel, daysTo, partyHex, seenSet, travel, type Play } from './travel';
+
+/** Smallest on-screen size of the map, as a share of its SVG units: 0.6 keeps a hex about 36 px across. */
+const MIN_SCALE = 0.6;
 
 /** Where a hex's note goes: beside the note that holds the map. */
 export function notePath(sourcePath: string, c: Crawl, i: number): string {
@@ -37,12 +40,30 @@ class CrawlMap extends MarkdownRenderChild {
 	draw() {
 		const box = this.containerEl;
 		const c = this.crawl;
+		const scrolled = box.querySelector('.hexwright-wrap')?.scrollLeft;
 		box.empty();
 		box.addClass('hexwright');
 		const wrap = box.createDiv({ cls: 'hexwright-wrap' });
 		const at = partyHex(c, this.play);
 		const seen = this.play.fog && !this.reveal ? seenSet(c, this.play) : undefined;
 		const svg = toDom(render(c, { keys: this.keys, picked: this.picked, at, seen }), wrap);
+		// On a narrow pane a big map would shrink its hexes below a fingertip; keep them at least MIN_SCALE and scroll sideways instead.
+		const [w] = size(c);
+		wrap.setCssProps({ '--hexwright-min-width': `${Math.round(w * MIN_SCALE)}px` });
+		if (scrolled !== undefined) wrap.scrollLeft = scrolled;
+		else {
+			// The block is drawn before Obsidian puts it in the page, so wait for it to have a width.
+			const party = c.hexes[at];
+			let tries = 0;
+			const aim = () => {
+				if (!party || ++tries > 120) return;
+				if (wrap.clientWidth === 0) return void window.requestAnimationFrame(aim);
+				if (wrap.scrollWidth <= wrap.clientWidth) return;
+				const k = (svg as unknown as SVGSVGElement).getBoundingClientRect().width / w;
+				wrap.scrollLeft = centre(party)[0] * k - wrap.clientWidth / 2;
+			};
+			window.requestAnimationFrame(aim);
+		}
 		const save = () => this.plugin.savePng(this.ctx.sourcePath, c, render(c, { keys: this.keys, at, seen }));
 		this.registerDomEvent(svg as unknown as HTMLElement, 'click', (e: MouseEvent) => {
 			const id = (e.target as Element).closest('[data-hex]')?.getAttribute('data-hex');
@@ -52,7 +73,7 @@ class CrawlMap extends MarkdownRenderChild {
 			this.draw();
 		});
 		const day = this.play.day ? `Day ${this.play.day}. ` : '';
-		const cap = box.createDiv({ cls: 'hexwright-caption', text: `${c.cols} × ${c.rows} hexes, seed ${c.opts.seed}. ${day}The party is in ${c.hexes[at]?.id ?? '?'}. Click a hex to see what's there, or a hex next to the party to travel. ` });
+		const cap = box.createDiv({ cls: 'hexwright-caption', text: `${c.cols} × ${c.rows} hexes, seed ${c.opts.seed}. ${day}The party is in ${c.hexes[at]?.id ?? '?'}. ${Platform.isMobile ? 'Tap' : 'Click'} a hex to see what's there, or a hex next to the party to travel. ` });
 		if (this.play.fog) {
 			const peek = cap.createEl('a', { text: this.reveal ? 'Hide what the party hasn’t seen' : 'Show the whole map', href: '#' });
 			this.registerDomEvent(peek, 'click', (e) => {

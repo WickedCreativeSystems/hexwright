@@ -41,6 +41,8 @@ fog: off
 
 Lines starting with `#` are ignored, so you can leave yourself notes in the block.
 
+On a phone or in a narrow pane, a big map keeps its hexes big enough to tap and scrolls sideways instead, starting with the party in the middle.
+
 ## Travel
 
 ![The same region under fog, after a day's travel into the swamp, with the day written under the map](docs/travel.png)

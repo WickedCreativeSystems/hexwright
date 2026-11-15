@@ -5,6 +5,7 @@
 .hexwright-map {
 	display: block;
 	max-width: 100%;
+	min-width: var(--hexwright-min-width, 0);
 	height: auto;
 }
 
