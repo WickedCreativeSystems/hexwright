@@ -3,7 +3,7 @@
 	"name": "Hexwright",
 	"version": "0.1.3",
 	"minAppVersion": "1.13.0",
-	"description": "Hexcrawl generator for TTRPGs like D&D and OSR games: a hex map from a seed in your note, with terrain, rivers, roads and towns, something keyed in every hex, and a party that travels day by day under fog of war.",
+	"description": "Hexcrawl generator for TTRPGs like D&D and OSR: a hex map from a seed in your note, with terrain, rivers, roads and towns, something in every hex, and a party that travels day by day in fog of war.",
 	"author": "Bananafest Destiny",
 	"isDesktopOnly": false
 }
