@@ -61,7 +61,7 @@ The rolls come from the seed and the day, so the same move from the same place o
 
 ## Hex notes and Mapsmith
 
-**Open its note** writes `<seed> <hex>.md` next to the note that holds the map, with the hex's name, what's there and its rumour, and a Notes heading for you. Towns, villages and ruins also get a `mapsmith` block with a seed of their own, so with the free [Mapsmith](https://github.com/walkertbrown/mapsmith) plugin installed, the town's streets or the ruin's dungeon are drawn right there. Without Mapsmith the block just shows as text.
+**Open its note** writes `<seed> <hex>.md` next to the note that holds the map, with the hex's name, what's there and its rumour, and a Notes heading for you. Towns, villages and ruins also get a `mapsmith` block with a seed of their own, so with the free [Mapsmith](https://github.com/walkertbrown/mapsmith) plugin installed, the town's streets or the ruin's dungeon are drawn right there. Without Mapsmith the block just shows as text. [Mapsmith Pro](https://bulkhead.bananafest-destiny.com/go/pro/hexwright), $6 once, saves that town or dungeon for Foundry, Atlas VTT or Roll20 with its walls and doors (walls in Roll20 need a paid Roll20 plan).
 
 ## Save as picture
 
