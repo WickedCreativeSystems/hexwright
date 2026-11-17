@@ -13,6 +13,7 @@ Six-mile hexes. The party has a rumour and a week of food.
 seed: ${seed}
 size: medium
 terrain: mixed
+rations: 7
 fog: ${fog ? 'on' : 'off'}
 \`\`\``;
 
