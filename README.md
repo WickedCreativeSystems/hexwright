@@ -65,6 +65,8 @@ The rolls come from the seed and the day, so the same move from the same place o
 
 Add `rations: 14` to the block and the party eats a day's food for every day of travel. Each day it may forage a day's food back: 2 in 6 in forest, 1 in 6 on plains, hills and swamp, none in the mountains, and 1 in 6 better beside a river. The day line says what's left, like `Foraged a day's food. Food left: 9 days.`, and says when the food runs out. The count is kept in the block as the `rations:` line, so edit it when the party buys food in a town. Food has its own rolls, so turning it on doesn't change the weather, the way or what the party meets.
 
+![A day log where the food runs out: "Foraged a day's food. No food left." then "Out of food, and hungry."](docs/rations.png)
+
 ### Your own encounters
 
 Add `encounters: [[Wild encounters]]` to the block and the party meets things from that note instead of Hexwright's list. Every list item in the note is one encounter. Items under a heading that names a terrain (`## Forest`, `## Swamp`, `## Hills`, `## Mountains`, `## Plains`; woods, marsh and the like work too) come up only there; every other item comes up anywhere that has no list of its own.
