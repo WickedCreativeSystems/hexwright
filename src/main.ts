@@ -4,6 +4,7 @@ import { generate, newSeed, type Crawl } from './hex';
 import { hexNote, keyCrawl, type Key } from './keys';
 import { svgToPng } from './png';
 import { HEX, centre, render, size, toDom, toString } from './render';
+import { parseTables, type Tables } from './tables';
 import { applyMove, canTravel, daysTo, partyHex, seenSet, travel, type Play } from './travel';
 
 /** Smallest on-screen size of the map, as a share of its SVG units: 0.6 keeps a hex about 36 px across. */
@@ -21,13 +22,16 @@ class CrawlMap extends MarkdownRenderChild {
 	private picked: number | undefined;
 	private problems: string[];
 	private play: Play;
+	/** the note named in `encounters:`, or empty */
+	private encounters: string;
 	/** fog lifted for this view only (the referee peeking); not saved */
 	private reveal = false;
 
 	constructor(private plugin: Hexwright, el: HTMLElement, src: string, private ctx: MarkdownPostProcessorContext) {
 		super(el);
-		const { opts, play, problems } = parseBlock(src);
+		const { opts, play, problems, encounters } = parseBlock(src);
 		this.problems = problems;
+		this.encounters = encounters;
 		this.play = play;
 		this.crawl = generate(opts);
 		this.keys = keyCrawl(this.crawl);
@@ -91,6 +95,7 @@ class CrawlMap extends MarkdownRenderChild {
 				.finally(() => (pic.disabled = false));
 		});
 		for (const p of this.problems) box.createDiv({ cls: 'hexwright-problem', text: p });
+		if (this.encounters && !this.encounterFile()) box.createDiv({ cls: 'hexwright-problem', text: `No note called "${this.encounters}" for encounters, so travel uses Hexwright’s own.` });
 		if (this.picked !== undefined) this.panel(box, this.picked);
 	}
 
@@ -128,9 +133,17 @@ class CrawlMap extends MarkdownRenderChild {
 		this.registerDomEvent(open, 'click', () => void this.plugin.openHexNote(this.ctx.sourcePath, c, this.keys, i));
 	}
 
+	/** The note named in `encounters:`, found the way a [[link]] from this note would be. */
+	private encounterFile(): TFile | null {
+		return this.encounters ? this.plugin.app.metadataCache.getFirstLinkpathDest(this.encounters, this.ctx.sourcePath) : null;
+	}
+
 	/** Move the party into hex `to`: write the new state into the block and the day into the note. */
 	private async travel(to: number) {
-		const move = travel(this.crawl, this.keys, this.play, to);
+		const enc = this.encounterFile();
+		let tables: Tables | undefined;
+		if (enc) tables = parseTables(await this.plugin.app.vault.cachedRead(enc));
+		const move = travel(this.crawl, this.keys, this.play, to, tables);
 		const info = this.ctx.getSectionInfo(this.containerEl);
 		const file = this.plugin.app.vault.getAbstractFileByPath(this.ctx.sourcePath);
 		if (!move || !info || !(file instanceof TFile)) {

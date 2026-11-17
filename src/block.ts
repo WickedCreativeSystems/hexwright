@@ -2,18 +2,22 @@
 // be tested without Obsidian.
 
 import { DEFAULTS, LEANS, SIZES, type CrawlOptions, type Lean, type SizeName } from './hex';
+import { linkName } from './tables';
 import { NEW_PLAY, type Play } from './travel';
 
 export interface Parsed {
 	opts: CrawlOptions;
 	play: Play;
 	problems: string[];
+	/** the note named in `encounters:`, or empty */
+	encounters: string;
 }
 
 export function parseBlock(src: string): Parsed {
 	const opts: CrawlOptions = { ...DEFAULTS };
 	const play: Play = { ...NEW_PLAY, visited: [] };
 	const problems: string[] = [];
+	let encounters = '';
 	for (const raw of src.split('\n')) {
 		const line = raw.replace(/#.*$/, '').trim();
 		if (!line) continue;
@@ -49,6 +53,9 @@ export function parseBlock(src: string): Parsed {
 				else if (/^(off|no|false)$/i.test(val)) play.fog = false;
 				else problems.push(`fog should be on or off, not "${val}"`);
 				break;
+			case 'encounters':
+				encounters = linkName(val);
+				break;
 			case 'at':
 				play.at = val;
 				break;
@@ -63,5 +70,5 @@ export function parseBlock(src: string): Parsed {
 				problems.push(`Hexwright doesn't know "${key}"`);
 		}
 	}
-	return { opts, play, problems };
+	return { opts, play, problems, encounters };
 }

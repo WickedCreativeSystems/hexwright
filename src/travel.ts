@@ -4,6 +4,7 @@
 
 import { hexDistance, neighbours, parseId, type Crawl, type Hex, type Terrain } from './hex';
 import type { Key } from './keys';
+import { tableFor, type Tables } from './tables';
 import { chance, makeRng, pick, type Rng } from './rng';
 
 export interface Play {
@@ -86,8 +87,8 @@ export interface Move {
 	line: string;
 }
 
-/** One move into a neighbouring hex. Rolls come from the seed, the day and the hexes, so the same move rolls the same. */
-export function travel(c: Crawl, keys: Key[], play: Play, to: number): Move | null {
+/** One move into a neighbouring hex. `tables`, from your own encounter note, replaces Hexwright's list where it has one. Rolls come from the seed, the day and the hexes, so the same move rolls the same. */
+export function travel(c: Crawl, keys: Key[], play: Play, to: number, tables?: Tables): Move | null {
 	if (!canTravel(c, play, to)) return null;
 	const from = c.hexes[partyHex(c, play)] as Hex;
 	const aim = c.hexes[to] as Hex;
@@ -105,7 +106,7 @@ export function travel(c: Crawl, keys: Key[], play: Play, to: number): Move | nu
 	const days = daysTo(from, end);
 	const weather = pick(r, WEATHER);
 	const t = end.terrain === 'water' ? 'plains' : end.terrain;
-	const met = chance(r, DANGER[end.terrain]) ? pick(r, MEET[t]) : null;
+	const met = chance(r, DANGER[end.terrain]) ? pick(r, tableFor(tables, t) ?? MEET[t]) : null;
 	const firstTime = !play.visited.includes(end.id);
 	const k = keys[end.i];
 	const day = play.day + 1;

@@ -38,6 +38,7 @@ fog: off
 | `terrain` | The lean of the country: `mixed`, `forest`, `steppe`, `mountains`, `swamp` or `coast`. |
 | `start` | The party's first hex, like `0607`. Leave it out and the party starts in the town nearest the middle. |
 | `fog` | `on` hides every hex the party hasn't seen. `off` (the default) shows the whole map. |
+| `encounters` | A note with your own encounter list, like `[[Wild encounters]]` (see below). |
 
 Lines starting with `#` are ignored, so you can leave yourself notes in the block.
 
@@ -58,6 +59,20 @@ The day is written into your note as a list line under the map, like `- Days 1â€
 With `fog: on`, the party sees the hexes around every hex it has been in, and two hexes out from hills and mountains. **Show the whole map** under the map lifts the fog for you only; it isn't saved.
 
 The rolls come from the seed and the day, so the same move from the same place on the same day rolls the same.
+
+### Your own encounters
+
+Add `encounters: [[Wild encounters]]` to the block and the party meets things from that note instead of Hexwright's list. Every list item in the note is one encounter. Items under a heading that names a terrain (`## Forest`, `## Swamp`, `## Hills`, `## Mountains`, `## Plains`; woods, marsh and the like work too) come up only there; every other item comes up anywhere that has no list of its own.
+
+```markdown
+# Wild encounters
+- a pedlar who sells maps that are nearly right
+- the baron's tax collectors
+## Forest
+- a green knight at a ford
+```
+
+How often something turns up stays the same. If the note can't be found, the map says so and travel uses Hexwright's own list.
 
 ## Hex notes and Mapsmith
 
