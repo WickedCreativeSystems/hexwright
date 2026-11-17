@@ -241,13 +241,28 @@ describe('rations', () => {
 		const ms = walk({ ...NEW_PLAY, rations: 6 }, 30);
 		let left = 6, found = 0;
 		for (const m of ms) {
+			const hungry = left + m.foraged < m.days;
 			left = Math.max(0, left - m.days + m.foraged);
 			found += m.foraged;
 			expect(m.play.rations).toBe(left);
-			expect(m.line).toMatch(/Food left: \d+ days?\.|The food is gone\.|Out of food, and hungry\./);
+			expect(m.line).toMatch(/Food left: \d+ days?\.|No food left\.|Out of food, and hungry\./);
+			expect(/hungry/.test(m.line)).toBe(hungry);
 		}
 		expect(found).toBeGreaterThan(0);
 		expect(ms.some((m) => /hungry/.test(m.line))).toBe(true);
+	});
+	it('goes hungry when carried food plus foraging falls short, even on a day something was found', () => {
+		const here = c.hexes[partyHex(c, NEW_PLAY)]!;
+		const opts = neighbours(c, here.col, here.row).map(([x, y]) => y * c.cols + x);
+		let short = 0, fed = 0;
+		for (let day = 0; day < 400; day++) for (const to of opts) {
+			const m = travel(c, keys, { ...NEW_PLAY, day, rations: 0 }, to);
+			if (!m || !m.foraged) continue;
+			if (m.foraged < m.days) { short++; expect(m.line).toMatch(/Out of food, and hungry\./); }
+			else { fed++; expect(m.line).toMatch(/No food left\./); }
+		}
+		expect(short).toBeGreaterThan(0);
+		expect(fed).toBeGreaterThan(0);
 	});
 	it('writes rations back only when the block tracks them', () => {
 		const play = { fog: false, at: '0909', day: 2, visited: ['0808', '0909'] };

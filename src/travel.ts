@@ -130,10 +130,11 @@ export function travel(c: Crawl, keys: Key[], play: Play, to: number, tables?: T
 		const fr = makeRng(`${c.opts.seed}:day${play.day}:${from.id}:${end.id}:food`);
 		const odds = FORAGE[end.terrain] + (end.river ? 1 / 6 : 0);
 		for (let d = 0; d < days; d++) if (chance(fr, odds)) foraged++;
-		const short = rations < days;
+		// Hungry when what they carried plus what they found is less than the days walked.
+		const hungry = rations + foraged < days;
 		rations = Math.max(0, rations - days + foraged);
 		if (foraged) parts.push(`Foraged ${foraged === 1 ? "a day's food" : `${foraged} days' food`}.`);
-		parts.push(short && !foraged ? 'Out of food, and hungry.' : rations === 0 ? 'The food is gone.' : `Food left: ${rations} ${rations === 1 ? 'day' : 'days'}.`);
+		parts.push(hungry ? 'Out of food, and hungry.' : rations === 0 ? 'No food left.' : `Food left: ${rations} ${rations === 1 ? 'day' : 'days'}.`);
 	}
 	const line = `- ${span}: ${parts[0]}. ${parts.slice(1).join(' ')}`.trimEnd();
 	const visited = play.visited.length ? [...play.visited] : [from.id];
