@@ -38,6 +38,7 @@ fog: off
 | `terrain` | The lean of the country: `mixed`, `forest`, `steppe`, `mountains`, `swamp` or `coast`. |
 | `start` | The party's first hex, like `0607`. Leave it out and the party starts in the town nearest the middle. |
 | `fog` | `on` hides every hex the party hasn't seen. `off` (the default) shows the whole map. |
+| `rations` | Days of food the party carries, like `rations: 14`. Leave it out and food isn't counted (see below). |
 | `encounters` | A note with your own encounter list, like `[[Wild encounters]]` (see below). |
 
 Lines starting with `#` are ignored, so you can leave yourself notes in the block.
@@ -59,6 +60,10 @@ The day is written into your note as a list line under the map, like `- Days 1â€
 With `fog: on`, the party sees the hexes around every hex it has been in, and two hexes out from hills and mountains. **Show the whole map** under the map lifts the fog for you only; it isn't saved.
 
 The rolls come from the seed and the day, so the same move from the same place on the same day rolls the same.
+
+### Food
+
+Add `rations: 14` to the block and the party eats a day's food for every day of travel. Each day it may forage a day's food back: 2 in 6 in forest, 1 in 6 on plains, hills and swamp, none in the mountains, and 1 in 6 better beside a river. The day line says what's left, like `Foraged a day's food. Food left: 9 days.`, and says when the food runs out. The count is kept in the block as the `rations:` line, so edit it when the party buys food in a town. Food has its own rolls, so turning it on doesn't change the weather, the way or what the party meets.
 
 ### Your own encounters
 

@@ -207,6 +207,55 @@ describe('travel', () => {
 	});
 });
 
+describe('rations', () => {
+	const c = generate({ ...DEFAULTS, seed: 'saltmarch' });
+	const keys = keyCrawl(c);
+	const walk = (start: typeof NEW_PLAY, n: number) => {
+		const out = [];
+		let play = start;
+		for (let k = 0; k < n; k++) {
+			const here = c.hexes[partyHex(c, play)]!;
+			const opts = neighbours(c, here.col, here.row).map(([x, y]) => y * c.cols + x).filter((i) => canTravel(c, play, i));
+			const m = travel(c, keys, play, opts[k % opts.length]!)!;
+			out.push(m);
+			play = m.play;
+		}
+		return out;
+	};
+	it('reads rations from the block and complains about a bad one', () => {
+		expect(parseBlock('seed: x\nrations: 7').play.rations).toBe(7);
+		expect(parseBlock('seed: x').play.rations).toBeUndefined();
+		expect(parseBlock('rations: lots').problems).toHaveLength(1);
+	});
+	it('leaves every other roll alone, so tracking food never changes the trip', () => {
+		const plain = walk({ ...NEW_PLAY }, 25), fed = walk({ ...NEW_PLAY, rations: 10 }, 25);
+		for (let k = 0; k < plain.length; k++) {
+			expect(fed[k]!.ended).toBe(plain[k]!.ended);
+			expect(fed[k]!.weather).toBe(plain[k]!.weather);
+			expect(fed[k]!.met).toBe(plain[k]!.met);
+			expect(fed[k]!.line.startsWith(plain[k]!.line)).toBe(true);
+			expect(plain[k]!.line).not.toMatch(/food/i);
+		}
+	});
+	it('eats a day a day, finds some on the way, and never goes below nothing', () => {
+		const ms = walk({ ...NEW_PLAY, rations: 6 }, 30);
+		let left = 6, found = 0;
+		for (const m of ms) {
+			left = Math.max(0, left - m.days + m.foraged);
+			found += m.foraged;
+			expect(m.play.rations).toBe(left);
+			expect(m.line).toMatch(/Food left: \d+ days?\.|The food is gone\.|Out of food, and hungry\./);
+		}
+		expect(found).toBeGreaterThan(0);
+		expect(ms.some((m) => /hungry/.test(m.line))).toBe(true);
+	});
+	it('writes rations back only when the block tracks them', () => {
+		const play = { fog: false, at: '0909', day: 2, visited: ['0808', '0909'] };
+		expect(writePlay('seed: s\nrations: 9\nday: 1', { ...play, rations: 7 })).toBe('seed: s\nrations: 7\nat: 0909\nday: 2\nvisited: 0808 0909');
+		expect(writePlay('seed: s', play)).not.toContain('rations');
+	});
+});
+
 describe('key lines', () => {
 	it('keeps a landmark or resource with its own line', () => {
 		for (const seed of seeds) {

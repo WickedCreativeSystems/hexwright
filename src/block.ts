@@ -63,6 +63,10 @@ export function parseBlock(src: string): Parsed {
 				if (/^\d+$/.test(val)) play.day = Number(val);
 				else problems.push(`day should be a number, not "${val}"`);
 				break;
+			case 'rations':
+				if (/^\d+$/.test(val)) play.rations = Number(val);
+				else problems.push(`rations should be a number of days, not "${val}"`);
+				break;
 			case 'visited':
 				play.visited = val.split(/[\s,]+/).filter(Boolean);
 				break;

@@ -77,7 +77,9 @@ class CrawlMap extends MarkdownRenderChild {
 			this.draw();
 		});
 		const day = this.play.day ? `Day ${this.play.day}. ` : '';
-		const cap = box.createDiv({ cls: 'hexwright-caption', text: `${c.cols} × ${c.rows} hexes, seed ${c.opts.seed}. ${day}The party is in ${c.hexes[at]?.id ?? '?'}. ${Platform.isMobile ? 'Tap' : 'Click'} a hex to see what's there, or a hex next to the party to travel. ` });
+		const r = this.play.rations;
+		const food = r === undefined ? '' : r === 0 ? 'No food left. ' : `Food for ${r} ${r === 1 ? 'day' : 'days'}. `;
+		const cap = box.createDiv({ cls: 'hexwright-caption', text: `${c.cols} × ${c.rows} hexes, seed ${c.opts.seed}. ${day}${food}The party is in ${c.hexes[at]?.id ?? '?'}. ${Platform.isMobile ? 'Tap' : 'Click'} a hex to see what's there, or a hex next to the party to travel. ` });
 		if (this.play.fog) {
 			const peek = cap.createEl('a', { text: this.reveal ? 'Hide what the party hasn’t seen' : 'Show the whole map', href: '#' });
 			this.registerDomEvent(peek, 'click', (e) => {

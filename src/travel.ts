@@ -16,6 +16,8 @@ export interface Play {
 	day: number;
 	/** hexes the party has been in, in order of first visit */
 	visited: string[];
+	/** days of food the party carries; undefined when the block doesn't track it */
+	rations?: number;
 }
 
 export const NEW_PLAY: Play = { fog: false, at: '', day: 0, visited: [] };
@@ -65,6 +67,9 @@ export function daysTo(from: Hex, to: Hex): number {
 const LOST: Record<Terrain, number> = { plains: 0, water: 0, forest: 2 / 6, swamp: 2 / 6, hills: 1 / 6, mountains: 1 / 6 };
 const DANGER: Record<Terrain, number> = { plains: 1 / 6, water: 1 / 6, forest: 2 / 6, swamp: 2 / 6, hills: 1 / 6, mountains: 2 / 6 };
 
+/** The chance a day's foraging finds a day's food; better along a river. */
+const FORAGE: Record<Terrain, number> = { plains: 1 / 6, water: 0, forest: 2 / 6, swamp: 1 / 6, hills: 1 / 6, mountains: 0 };
+
 const WEATHER = ['Clear', 'Clear', 'Bright and cold', 'Overcast', 'Overcast', 'Wind from the west', 'Drizzle', 'Rain all day', 'Fog until noon', 'A storm in the afternoon', 'Hot and still', 'Frost at dawn'];
 
 const MEET: Record<Exclude<Terrain, 'water'>, string[]> = {
@@ -83,6 +88,8 @@ export interface Move {
 	lost: boolean;
 	weather: string;
 	met: string | null;
+	/** days of food found on the way (only when rations are tracked) */
+	foraged: number;
 	/** the log line for the note */
 	line: string;
 }
@@ -116,16 +123,31 @@ export function travel(c: Crawl, keys: Key[], play: Play, to: number, tables?: T
 	parts.push(`${weather}.`);
 	if (met) parts.push(`On the way: ${met}.`);
 	if (k && k.kind !== 'empty' && firstTime) parts.push(`Found ${k.name} (${k.label.toLowerCase()}).`);
+	// Food has its own rolls, so tracking rations never changes the weather, the way or the meetings.
+	let rations = play.rations;
+	let foraged = 0;
+	if (rations !== undefined) {
+		const fr = makeRng(`${c.opts.seed}:day${play.day}:${from.id}:${end.id}:food`);
+		const odds = FORAGE[end.terrain] + (end.river ? 1 / 6 : 0);
+		for (let d = 0; d < days; d++) if (chance(fr, odds)) foraged++;
+		const short = rations < days;
+		rations = Math.max(0, rations - days + foraged);
+		if (foraged) parts.push(`Foraged ${foraged === 1 ? "a day's food" : `${foraged} days' food`}.`);
+		parts.push(short && !foraged ? 'Out of food, and hungry.' : rations === 0 ? 'The food is gone.' : `Food left: ${rations} ${rations === 1 ? 'day' : 'days'}.`);
+	}
 	const line = `- ${span}: ${parts[0]}. ${parts.slice(1).join(' ')}`.trimEnd();
 	const visited = play.visited.length ? [...play.visited] : [from.id];
 	if (!visited.includes(end.id)) visited.push(end.id);
-	return { play: { ...play, at: end.id, day: play.day + days, visited }, ended: end.i, days, lost, weather, met, line };
+	const next: Play = { ...play, at: end.id, day: play.day + days, visited };
+	if (rations !== undefined) next.rations = rations;
+	return { play: next, ended: end.i, days, lost, weather, met, foraged, line };
 }
 
-/** The block's text with the play lines (`at:`, `day:`, `visited:`) replaced by the new state. */
+/** The block's text with the play lines (`at:`, `day:`, `visited:`, and `rations:` if tracked) replaced by the new state. */
 export function writePlay(src: string, play: Play): string {
-	const keep = src.split('\n').filter((l) => !/^\s*(at|day|visited)\s*:/i.test(l));
+	const keep = src.split('\n').filter((l) => !/^\s*(at|day|visited|rations)\s*:/i.test(l));
 	while (keep.length && !keep[keep.length - 1]!.trim()) keep.pop();
+	if (play.rations !== undefined) keep.push(`rations: ${play.rations}`);
 	keep.push(`at: ${play.at}`, `day: ${play.day}`, `visited: ${play.visited.join(' ')}`);
 	return keep.join('\n');
 }
