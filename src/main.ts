@@ -5,7 +5,7 @@ import { hexNote, keyCrawl, type Key } from './keys';
 import { svgToPng } from './png';
 import { HEX, centre, render, size, toDom, toString } from './render';
 import { parseTables, type Tables } from './tables';
-import { applyMove, canTravel, daysTo, partyHex, rest, seenSet, travel, type Move, type Play } from './travel';
+import { applyMove, buyFood, canTravel, daysTo, partyHex, rest, seenSet, travel, type Move, type Play } from './travel';
 
 /** Smallest on-screen size of the map, as a share of its SVG units: 0.6 keeps a hex about 36 px across. */
 const MIN_SCALE = 0.6;
@@ -91,6 +91,11 @@ class CrawlMap extends MarkdownRenderChild {
 		const tools = box.createDiv({ cls: 'hexwright-buttons' });
 		const camp = tools.createEl('button', { text: 'Rest a day here' });
 		this.registerDomEvent(camp, 'click', () => void this.rest());
+		const shop = buyFood(c, this.keys, this.play);
+		if (shop) {
+			const buy = tools.createEl('button', { text: `Buy food here (+${(shop.play.rations ?? 0) - (this.play.rations ?? 0)} days)` });
+			this.registerDomEvent(buy, 'click', () => void this.save(buyFood(this.crawl, this.keys, this.play)));
+		}
 		const pic = tools.createEl('button', { text: 'Save as picture' });
 		this.registerDomEvent(pic, 'click', () => {
 			pic.disabled = true;

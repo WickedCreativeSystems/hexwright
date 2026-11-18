@@ -175,6 +175,23 @@ export function rest(c: Crawl, play: Play, tables?: Tables): Move {
 	return { play: next, ended: h.i, days: 1, lost: false, weather, met, foraged, line };
 }
 
+/** Days of food a town or a village will sell at one go. */
+export const FOOD_FOR_SALE: Partial<Record<Key['kind'], number>> = { town: 7, village: 3 };
+
+/**
+ * Buying food where the party stands: a week in a town, three days in a village. Takes no time and rolls nothing;
+ * the price is left to your game. Null unless the block tracks rations and the party is in a town or village.
+ */
+export function buyFood(c: Crawl, keys: Key[], play: Play): Move | null {
+	const h = c.hexes[partyHex(c, play)] as Hex, k = keys[h.i];
+	const n = k ? FOOD_FOR_SALE[k.kind] : undefined;
+	if (play.rations === undefined || !k || !n) return null;
+	const rations = play.rations + n;
+	const line = `- Day ${play.day}: Bought ${n === 7 ? 'a week' : `${n} days`} of food in ${k.name} (${h.id}). Food left: ${rations} days.`;
+	const visited = play.visited.length ? [...play.visited] : [h.id];
+	return { play: { ...play, at: h.id, visited, rations }, ended: h.i, days: 0, lost: false, weather: '', met: null, foraged: 0, line };
+}
+
 /** The block's text with the play lines (`at:`, `day:`, `visited:`, and `rations:` if tracked) replaced by the new state. */
 export function writePlay(src: string, play: Play): string {
 	const keep = src.split('\n').filter((l) => !/^\s*(at|day|visited|rations)\s*:/i.test(l));

@@ -136,7 +136,7 @@ describe('key names', () => {
 	});
 });
 
-import { applyMove, canTravel, partyHex, rest, seenSet, travel, writePlay, NEW_PLAY } from '../src/travel';
+import { applyMove, buyFood, canTravel, partyHex, rest, seenSet, travel, writePlay, NEW_PLAY } from '../src/travel';
 
 describe('travel', () => {
 	const c = generate({ ...DEFAULTS, seed: 'saltmarch' });
@@ -289,6 +289,25 @@ describe('rations', () => {
 		const out = applyMove(note, 2, 4, m.play, m.line)!;
 		expect(out).toContain(`at: ${here.id}\nday: 5`);
 		expect(out).toContain(m.line);
+	});
+	it('buys a week of food in a town, three days in a village, and nothing elsewhere or untracked', () => {
+		const town = c.towns[0]!;
+		const at = { ...NEW_PLAY, at: c.hexes[town]!.id, day: 3, rations: 1 };
+		expect(buyFood(c, keys, { ...at, rations: undefined })).toBeNull();
+		const m = buyFood(c, keys, at)!;
+		expect(m.play.rations).toBe(8);
+		expect(m.play.day).toBe(3);
+		expect(m.days).toBe(0);
+		expect(m.line).toBe(`- Day 3: Bought a week of food in ${keys[town]!.name} (${c.hexes[town]!.id}). Food left: 8 days.`);
+		let village = 0, none = 0;
+		for (const h of c.hexes) {
+			if (h.terrain === 'water' || h.town) continue;
+			const b = buyFood(c, keys, { ...NEW_PLAY, at: h.id, rations: 0 });
+			if (keys[h.i]!.kind === 'village') { village++; expect(b!.play.rations).toBe(3); expect(b!.line).toContain('Bought 3 days of food'); }
+			else { none++; expect(b).toBeNull(); }
+		}
+		expect(village).toBeGreaterThan(0);
+		expect(none).toBeGreaterThan(0);
 	});
 	it('writes rations back only when the block tracks them', () => {
 		const play = { fog: false, at: '0909', day: 2, visited: ['0808', '0909'] };
