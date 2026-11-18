@@ -57,6 +57,8 @@ Click a hex next to the party and its card offers **Travel here**. Each move is 
 
 **Rest a day here**, under the map, spends a day where the party is: the weather turns, something may come by in the night (half as often as on the road), and with food tracked the party eats a day's rations and forages where it stands. It writes a line like `- Day 4: Rested in 0607 (forest, river). Drizzle. Foraged a day's food. Food left: 3 days.`
 
+![The map in a town, with Rest a day here and Buy food here under it and a day log: bought a week of food, then two days resting](docs/camp.png)
+
 The day is written into your note as a list line under the map, like `- Days 1–2: 0909 to 0808 (swamp). Wind from the west. On the way: a bog that takes a pack animal. Found Clear Spring (resource).` The party's hex, the day count and the hexes it has been in are kept in the block as `at:`, `day:` and `visited:` lines, so the note is the save. Edit or delete those lines to move the party or start over.
 
 With `fog: on`, the party sees the hexes around every hex it has been in, and two hexes out from hills and mountains. **Show the whole map** under the map lifts the fog for you only; it isn't saved.
