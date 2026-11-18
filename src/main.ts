@@ -5,7 +5,7 @@ import { hexNote, keyCrawl, type Key } from './keys';
 import { svgToPng } from './png';
 import { HEX, centre, render, size, toDom, toString } from './render';
 import { parseTables, type Tables } from './tables';
-import { applyMove, canTravel, daysTo, partyHex, seenSet, travel, type Play } from './travel';
+import { applyMove, canTravel, daysTo, partyHex, rest, seenSet, travel, type Move, type Play } from './travel';
 
 /** Smallest on-screen size of the map, as a share of its SVG units: 0.6 keeps a hex about 36 px across. */
 const MIN_SCALE = 0.6;
@@ -89,6 +89,8 @@ class CrawlMap extends MarkdownRenderChild {
 			});
 		}
 		const tools = box.createDiv({ cls: 'hexwright-buttons' });
+		const camp = tools.createEl('button', { text: 'Rest a day here' });
+		this.registerDomEvent(camp, 'click', () => void this.rest());
 		const pic = tools.createEl('button', { text: 'Save as picture' });
 		this.registerDomEvent(pic, 'click', () => {
 			pic.disabled = true;
@@ -140,12 +142,23 @@ class CrawlMap extends MarkdownRenderChild {
 		return this.encounters ? this.plugin.app.metadataCache.getFirstLinkpathDest(this.encounters, this.ctx.sourcePath) : null;
 	}
 
+	/** Rows from the note named in `encounters:`, if there is one. */
+	private async tables(): Promise<Tables | undefined> {
+		const enc = this.encounterFile();
+		return enc ? parseTables(await this.plugin.app.vault.cachedRead(enc)) : undefined;
+	}
+
 	/** Move the party into hex `to`: write the new state into the block and the day into the note. */
 	private async travel(to: number) {
-		const enc = this.encounterFile();
-		let tables: Tables | undefined;
-		if (enc) tables = parseTables(await this.plugin.app.vault.cachedRead(enc));
-		const move = travel(this.crawl, this.keys, this.play, to, tables);
+		await this.save(travel(this.crawl, this.keys, this.play, to, await this.tables()));
+	}
+
+	/** Spend a day where the party is. */
+	private async rest() {
+		await this.save(rest(this.crawl, this.play, await this.tables()));
+	}
+
+	private async save(move: Move | null) {
 		const info = this.ctx.getSectionInfo(this.containerEl);
 		const file = this.plugin.app.vault.getAbstractFileByPath(this.ctx.sourcePath);
 		if (!move || !info || !(file instanceof TFile)) {

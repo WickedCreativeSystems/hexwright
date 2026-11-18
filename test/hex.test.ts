@@ -136,7 +136,7 @@ describe('key names', () => {
 	});
 });
 
-import { applyMove, canTravel, partyHex, seenSet, travel, writePlay, NEW_PLAY } from '../src/travel';
+import { applyMove, canTravel, partyHex, rest, seenSet, travel, writePlay, NEW_PLAY } from '../src/travel';
 
 describe('travel', () => {
 	const c = generate({ ...DEFAULTS, seed: 'saltmarch' });
@@ -263,6 +263,32 @@ describe('rations', () => {
 		}
 		expect(short).toBeGreaterThan(0);
 		expect(fed).toBeGreaterThan(0);
+	});
+	it('rests a day in place: same hex, one day on, a day of food eaten unless foraged', () => {
+		const here = c.hexes[partyHex(c, NEW_PLAY)]!;
+		const m = rest(c, { ...NEW_PLAY, day: 4 });
+		expect(m.play.at).toBe(here.id);
+		expect(m.play.day).toBe(5);
+		expect(m.play.visited).toEqual([here.id]);
+		expect(m.play.rations).toBeUndefined();
+		expect(m.line).toMatch(new RegExp(`^- Day 5: Rested in ${here.id} \\(`));
+		expect(m.line).not.toMatch(/Food|food/);
+		expect(rest(c, { ...NEW_PLAY, day: 4 })).toEqual(m);
+		let found = 0, met = 0;
+		for (let day = 0; day < 300; day++) {
+			const f = rest(c, { ...NEW_PLAY, day, rations: 3 });
+			expect(f.play.rations).toBe(f.foraged ? 3 : 2);
+			found += f.foraged;
+			if (f.met) { met++; expect(f.line).toContain('In the night:'); }
+			const z = rest(c, { ...NEW_PLAY, day, rations: 0 });
+			expect(z.line).toMatch(z.foraged ? /No food left\./ : /Out of food, and hungry\./);
+		}
+		expect(found).toBeGreaterThan(0);
+		expect(met).toBeGreaterThan(0);
+		const note = '# Trip\n\n```hexwright\nseed: saltmarch\n```\n';
+		const out = applyMove(note, 2, 4, m.play, m.line)!;
+		expect(out).toContain(`at: ${here.id}\nday: 5`);
+		expect(out).toContain(m.line);
 	});
 	it('writes rations back only when the block tracks them', () => {
 		const play = { fog: false, at: '0909', day: 2, visited: ['0808', '0909'] };

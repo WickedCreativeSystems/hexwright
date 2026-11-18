@@ -144,6 +144,37 @@ export function travel(c: Crawl, keys: Key[], play: Play, to: number, tables?: T
 	return { play: next, ended: end.i, days, lost, weather, met, foraged, line };
 }
 
+/**
+ * A day in camp where the party stands: a day passes, the weather turns, something may come by in the night (at
+ * half the odds of travelling), and if rations are tracked the party eats a day's food and forages where it is.
+ * Rolls come from the seed, the day and the hex, like a move.
+ */
+export function rest(c: Crawl, play: Play, tables?: Tables): Move {
+	const h = c.hexes[partyHex(c, play)] as Hex;
+	const r: Rng = makeRng(`${c.opts.seed}:day${play.day}:${h.id}:rest`);
+	const weather = pick(r, WEATHER);
+	const t = h.terrain === 'water' ? 'plains' : h.terrain;
+	const met = chance(r, DANGER[h.terrain] / 2) ? pick(r, tableFor(tables, t) ?? MEET[t]) : null;
+	const day = play.day + 1;
+	const parts = [`Rested in ${h.id} (${h.terrain}${h.river ? ', river' : ''})`, `${weather}.`];
+	if (met) parts.push(`In the night: ${met}.`);
+	let rations = play.rations;
+	let foraged = 0;
+	if (rations !== undefined) {
+		const fr = makeRng(`${c.opts.seed}:day${play.day}:${h.id}:rest:food`);
+		if (chance(fr, FORAGE[h.terrain] + (h.river ? 1 / 6 : 0))) foraged = 1;
+		const hungry = rations + foraged < 1;
+		rations = Math.max(0, rations - 1 + foraged);
+		if (foraged) parts.push("Foraged a day's food.");
+		parts.push(hungry ? 'Out of food, and hungry.' : rations === 0 ? 'No food left.' : `Food left: ${rations} ${rations === 1 ? 'day' : 'days'}.`);
+	}
+	const line = `- Day ${day}: ${parts[0]}. ${parts.slice(1).join(' ')}`.trimEnd();
+	const visited = play.visited.length ? [...play.visited] : [h.id];
+	const next: Play = { ...play, at: h.id, day, visited };
+	if (rations !== undefined) next.rations = rations;
+	return { play: next, ended: h.i, days: 1, lost: false, weather, met, foraged, line };
+}
+
 /** The block's text with the play lines (`at:`, `day:`, `visited:`, and `rations:` if tracked) replaced by the new state. */
 export function writePlay(src: string, play: Play): string {
 	const keep = src.split('\n').filter((l) => !/^\s*(at|day|visited|rations)\s*:/i.test(l));
