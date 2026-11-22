@@ -96,9 +96,17 @@ How often something turns up stays the same. If the note can't be found, the map
 - **Foundry VTT:** pick one of the **Hexagonal Columns** grid types (Foundry's flat-topped ones) and line it up with the Grid Alignment Tool, the angled ruler next to Grid Type.
 - **Owlbear Rodeo:** pick **Hex Horizontal** (Owlbear's flat-topped grid, point to the right) and set the columns to the map's width in hexes, which the save notice tells you.
 
+## The party's map on the players' phones
+
+With [DM Screen](https://github.com/walkertbrown/dm-screen) installed, the map gets a **Show the party's map to players** button. It puts the map on your players' phones through DM Screen's shared table: only the hexes the party has seen (even with `fog: off` on your screen), the party's hex marked, and the day. After each move, rest or purchase the new map goes to their phones by itself, so they watch the region open up as they travel. If you show them something else, Hexwright stops sending until you press the button again.
+
+![The party's map on a player's phone](docs/party-phone.png)
+
+**DM Screen is paid.** It costs $12 once [on itch.io](https://bulkhead.bananafest-destiny.com/go/dm-screen/hexwright). Without a key a shared table is a free trial that closes after an hour. Hexwright itself is free and needs no key.
+
 ## Privacy
 
-Hexwright works offline. It reads and writes only the note the map is in and the hex notes and pictures you ask it for. It sends nothing anywhere.
+Hexwright on its own works offline. It reads and writes only the note the map is in and the hex notes and pictures you ask it for, and sends nothing anywhere. The one exception is the button above: when you press it, Hexwright hands a picture of the party's map (only the hexes they've seen) and the day line to DM Screen, which uploads it to its server so the players' phones can show it. DM Screen's README says what that server keeps and for how long. Without DM Screen installed the button doesn't appear.
 
 ## License
 

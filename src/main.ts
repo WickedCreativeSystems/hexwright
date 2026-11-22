@@ -16,6 +16,27 @@ export function notePath(sourcePath: string, c: Crawl, i: number): string {
 	return normalizePath(`${dir}${c.opts.seed} ${c.hexes[i]?.id ?? ''}.md`);
 }
 
+/** What Hexwright uses of DM Screen's plugin (dm-screen 0.3.0 and later). */
+interface PlayerTable {
+	sharing: boolean;
+	handout: { title?: string } | null;
+	showImage(bytes: ArrayBuffer, title: string, text?: string): Promise<void>;
+}
+
+/** The handout's title on the players' page; also how Hexwright knows its map is the one showing. */
+export function partyTitle(c: Crawl): string {
+	return `The party’s map (${c.opts.seed})`;
+}
+
+/** The map as a PNG with hexes 100 pixels from flat side to flat side. */
+async function pngOf(c: Crawl, tree: ReturnType<typeof render>) {
+	const scale = 100 / (Math.sqrt(3) * HEX);
+	const [w, h] = size(c).map((v) => Math.round(v * scale)) as [number, number];
+	tree.a.width = w;
+	tree.a.height = h;
+	return { bin: base64ToArrayBuffer(await svgToPng(toString(tree), w, h)), w, h };
+}
+
 class CrawlMap extends MarkdownRenderChild {
 	private crawl: Crawl;
 	private keys: Key[];
@@ -95,6 +116,16 @@ class CrawlMap extends MarkdownRenderChild {
 		if (shop) {
 			const buy = tools.createEl('button', { text: `Buy food here (+${(shop.play.rations ?? 0) - (this.play.rations ?? 0)} days)` });
 			this.registerDomEvent(buy, 'click', () => void this.save(buyFood(this.crawl, this.keys, this.play)));
+		}
+		if (this.plugin.playerTable()) {
+			const show = tools.createEl('button', { text: 'Show the party’s map to players' });
+			this.registerDomEvent(show, 'click', () => {
+				show.disabled = true;
+				this.plugin
+					.showParty(this.crawl, this.keys, this.play)
+					.catch((e: unknown) => new Notice(`Couldn’t show the map: ${e instanceof Error ? e.message : String(e)}`))
+					.finally(() => (show.disabled = false));
+			});
 		}
 		const pic = tools.createEl('button', { text: 'Save as picture' });
 		this.registerDomEvent(pic, 'click', () => {
@@ -180,6 +211,7 @@ class CrawlMap extends MarkdownRenderChild {
 			return next;
 		});
 		if (!ok) new Notice('The note changed before the move could be saved. Try again.');
+		else await this.plugin.resendParty(this.crawl, this.keys, move.play).catch(() => undefined);
 	}
 }
 
@@ -200,17 +232,39 @@ export default class Hexwright extends Plugin {
 	 * flat side and the grid starting at the top-left corner, so a virtual tabletop's hex grid can be laid on it.
 	 */
 	async savePng(sourcePath: string, c: Crawl, tree: ReturnType<typeof render>) {
-		const scale = 100 / (Math.sqrt(3) * HEX);
-		const [w, h] = size(c).map((v) => Math.round(v * scale)) as [number, number];
-		tree.a.width = w;
-		tree.a.height = h;
-		const bin = base64ToArrayBuffer(await svgToPng(toString(tree), w, h));
+		const { bin, w, h } = await pngOf(c, tree);
 		const dir = sourcePath.includes('/') ? sourcePath.slice(0, sourcePath.lastIndexOf('/') + 1) : '';
 		const path = normalizePath(`${dir}${c.opts.seed.replace(/[\\/:*?"<>|#^[\]]/g, '')} hexes.png`);
 		const old = this.app.vault.getAbstractFileByPath(path);
 		if (old instanceof TFile) await this.app.vault.modifyBinary(old, bin);
 		else await this.app.vault.createBinary(path, bin);
 		new Notice(`Saved ${path}: ${c.cols} by ${c.rows} flat-topped hexes, 100 pixels from flat side to flat side (115 corner to corner), ${w} by ${h} pixels.`);
+	}
+
+	/** DM Screen's shared player table, when DM Screen is installed and turned on. */
+	playerTable(): PlayerTable | null {
+		const all = (this.app as unknown as { plugins?: { plugins?: Record<string, Partial<PlayerTable> | undefined> } }).plugins?.plugins;
+		const t = all?.['dm-screen'];
+		return t && typeof t.showImage === 'function' ? (t as PlayerTable) : null;
+	}
+
+	/**
+	 * Puts the map on the players' phones through DM Screen: only the hexes the party has seen, fog on or off,
+	 * with the party's hex marked. DM Screen opens the table first if it isn't shared yet.
+	 */
+	async showParty(c: Crawl, keys: Key[], play: Play) {
+		const t = this.playerTable();
+		if (!t) return;
+		const at = partyHex(c, play);
+		const { bin } = await pngOf(c, render(c, { keys, at, seen: seenSet(c, play), numbers: true }));
+		const day = play.day ? `Day ${play.day}. ` : '';
+		await t.showImage(bin, partyTitle(c), `${day}The party is in ${c.hexes[at]?.id ?? '?'}.`);
+	}
+
+	/** After a move, rest or purchase: send the map again if it is what the players are looking at. */
+	async resendParty(c: Crawl, keys: Key[], play: Play) {
+		const t = this.playerTable();
+		if (t?.sharing && t.handout?.title === partyTitle(c)) await this.showParty(c, keys, play);
 	}
 
 	/** Open the hex's note, writing it first if it isn't there. */
