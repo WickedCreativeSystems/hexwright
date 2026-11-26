@@ -16,7 +16,9 @@ Hexwright is free.
 
 From Obsidian: Settings → Community plugins → Browse → search "Hexwright", then Install and Enable.
 
-By hand: copy `main.js`, `manifest.json` and `styles.css` from the latest release into `<your vault>/.obsidian/plugins/hexwright/`, then enable it under Community plugins.
+By hand: copy `main.js`, `manifest.json` and `styles.css` from [the latest release](https://github.com/WickedCreativeSystems/hexwright/releases/latest) into `<your vault>/.obsidian/plugins/hexwright/`, then enable it under Community plugins.
+
+Hexwright needs Obsidian 1.13.0 or later and works on desktop and mobile.
 
 ## Use
 
@@ -36,10 +38,13 @@ fog: off
 | `seed` | Any word or number. The same seed draws the same map. |
 | `size` | `small` (8 × 6), `medium` (12 × 10), `large` (20 × 16), or your own, like `16x12` (4 to 40 each way). |
 | `terrain` | The lean of the country: `mixed`, `forest`, `steppe`, `mountains`, `swamp` or `coast`. |
-| `start` | The party's first hex, like `0607`. Leave it out and the party starts in the town nearest the middle. |
+| `start` | The party's first hex, like `0607`. Leave it out and the party starts in the town nearest the middle. If the map has no town, or the hex isn't on the map, it starts in the first land hex, reading left to right from the top row. |
 | `fog` | `on` hides every hex the party hasn't seen. `off` (the default) shows the whole map. |
 | `rations` | Days of food the party carries, like `rations: 14`. Leave it out and food isn't counted (see below). |
 | `encounters` | A note with your own encounter list, like `[[Wild encounters]]` (see below). |
+| `at` | Where the party is now, like `at: 0607`. Hexwright writes it after every move; edit it to move the party. If it names a sea hex or a hex that isn't on the map, the party goes back to its start. |
+| `day` | Days the party has travelled, like `day: 4`. |
+| `visited` | The hexes the party has been in, separated by spaces, like `visited: 0607 0608 0708`. With fog on, these are the hexes whose surroundings you can see. |
 
 Lines starting with `#` are ignored, so you can leave yourself notes in the block.
 
@@ -67,7 +72,7 @@ The rolls come from the seed and the day, so the same move from the same place o
 
 ### Food
 
-Add `rations: 14` to the block and the party eats a day's food for every day of travel. Each day it may forage a day's food back: 2 in 6 in forest, 1 in 6 on plains, hills and swamp, none in the mountains, and 1 in 6 better beside a river. The day line says what's left, like `Foraged a day's food. Food left: 9 days.`, and says when the food runs out. The count is kept in the block as the `rations:` line, and in a town or village **Buy food here** adds to it: a week in a town, three days in a village, with no day spent (the price is up to your game). Edit the line by hand for anything else. Food has its own rolls, so turning it on doesn't change the weather, the way or what the party meets.
+Add `rations: 14` to the block and the party eats a day's food for every day of travel. Each day it may forage a day's food back: 2 in 6 in forest, 1 in 6 on plains, hills and swamp, and none in the mountains. A river in the hex adds 1 in 6 to those odds, so forest by a river is 3 in 6 and mountains by a river are 1 in 6. A move rolls once for each day it takes, in the hex the party moves into. The day line says what's left, like `Foraged a day's food. Food left: 9 days.`, and says when the food runs out. The count is kept in the block as the `rations:` line, and in a town or village **Buy food here** adds to it: a week in a town, three days in a village, with no day spent (the price is up to your game). Edit the line by hand for anything else. Food has its own rolls, so turning it on doesn't change the weather, the way or what the party meets.
 
 ![A day log where the food runs out: "Foraged a day's food. No food left." then "Out of food, and hungry."](docs/rations.png)
 
@@ -87,7 +92,7 @@ How often something turns up stays the same. If the note can't be found, the map
 
 ## Hex notes and Mapsmith
 
-**Open its note** writes `<seed> <hex>.md` next to the note that holds the map, with the hex's name, what's there and its rumour, and a Notes heading for you. Towns, villages and ruins also get a `mapsmith` block with a seed of their own, so with the free [Mapsmith](https://github.com/walkertbrown/mapsmith) plugin installed, the town's streets or the ruin's dungeon are drawn right there. Without Mapsmith the block just shows as text. [Mapsmith Pro](https://bulkhead.bananafest-destiny.com/go/pro/hexwright), $6 once, saves that town or dungeon for Foundry, Atlas VTT or Roll20 with its walls and doors (walls in Roll20 need a paid Roll20 plan).
+**Open its note** writes `<seed> <hex>.md` next to the note that holds the map, with the hex's name, what's there and its rumour, and a Notes heading for you. Towns, villages and ruins also get a `mapsmith` block with a seed of their own, so with the free [Mapsmith](https://github.com/WickedCreativeSystems/mapsmith) plugin installed, the town's streets or the ruin's dungeon are drawn right there. Without Mapsmith the block just shows as text. [Mapsmith Pro](https://bulkhead.bananafest-destiny.com/go/pro/hexwright), $6 once, saves that town or dungeon for Foundry, Atlas VTT or Roll20 with its walls and doors (walls in Roll20 need a paid Roll20 plan).
 
 ## Save as picture
 
@@ -98,7 +103,7 @@ How often something turns up stays the same. If the note can't be found, the map
 
 ## The party's map on the players' phones
 
-With [DM Screen](https://github.com/walkertbrown/dm-screen) installed, the map gets a **Show the party's map to players** button. It puts the map on your players' phones through DM Screen's shared table: only the hexes the party has seen (even with `fog: off` on your screen), the party's hex marked, and the day. After each move, rest or purchase the new map goes to their phones by itself, so they watch the region open up as they travel. If you show them something else, Hexwright stops sending until you press the button again.
+With [DM Screen](https://github.com/WickedCreativeSystems/dm-screen) installed, the map gets a **Show the party's map to players** button. It puts the map on your players' phones through DM Screen's shared table: only the hexes the party has seen (even with `fog: off` on your screen), the party's hex marked, and the day. After each move, rest or purchase the new map goes to their phones by itself, so they watch the region open up as they travel. If you show them something else, Hexwright stops sending until you press the button again.
 
 ![The party's map on a player's phone](docs/party-phone.png)
 
